@@ -74,7 +74,7 @@ func (d *ActivityDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Description: "Activity rows grouped by model, provider, and endpoint.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"date":             schema.StringAttribute{Computed: true, Description: "Date of activity (YYYY-MM-DD)."},
+						"date":             schema.StringAttribute{Computed: true, Description: "Date of activity. Returned by the API as a datetime string (e.g. `2026-03-23 00:00:00`), not a plain date."},
 						"model":            schema.StringAttribute{Computed: true, Description: "Model ID used."},
 						"model_permaslug":  schema.StringAttribute{Computed: true, Description: "Versioned model identifier."},
 						"endpoint_id":      schema.StringAttribute{Computed: true, Description: "Endpoint identifier."},
