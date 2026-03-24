@@ -20,8 +20,9 @@ type OpenRouterProvider struct {
 }
 
 type OpenRouterProviderModel struct {
-	APIKey  types.String `tfsdk:"api_key"`
-	BaseURL types.String `tfsdk:"base_url"`
+	APIKey           types.String `tfsdk:"api_key"`
+	ManagementAPIKey types.String `tfsdk:"management_api_key"`
+	BaseURL          types.String `tfsdk:"base_url"`
 }
 
 func New(version string) func() provider.Provider {
@@ -37,12 +38,17 @@ func (p *OpenRouterProvider) Metadata(_ context.Context, _ provider.MetadataRequ
 
 func (p *OpenRouterProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Interact with OpenRouter AI API.",
+		Description: "Interact with the OpenRouter AI API to manage API keys, guardrails, and query model information.",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
-				Description: "OpenRouter API key. May also be set via OPENROUTER_API_KEY environment variable.",
+				Description: "Standard OpenRouter API key for inference endpoints (/models, etc.). May also be set via the OPENROUTER_API_KEY environment variable.",
+			},
+			"management_api_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "OpenRouter management API key, required for managing API keys, guardrails, and credits. May also be set via the OPENROUTER_MANAGEMENT_API_KEY environment variable.",
 			},
 			"base_url": schema.StringAttribute{
 				Optional:    true,
@@ -60,18 +66,24 @@ func (p *OpenRouterProvider) Configure(ctx context.Context, req provider.Configu
 	}
 
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
-	if !config.APIKey.IsNull() {
+	if !config.APIKey.IsNull() && !config.APIKey.IsUnknown() {
 		apiKey = config.APIKey.ValueString()
 	}
 
+	mgmtKey := os.Getenv("OPENROUTER_MANAGEMENT_API_KEY")
+	if !config.ManagementAPIKey.IsNull() && !config.ManagementAPIKey.IsUnknown() {
+		mgmtKey = config.ManagementAPIKey.ValueString()
+	}
+
 	baseURL := "https://openrouter.ai/api/v1"
-	if !config.BaseURL.IsNull() {
+	if !config.BaseURL.IsNull() && !config.BaseURL.IsUnknown() {
 		baseURL = config.BaseURL.ValueString()
 	}
 
 	client := &OpenRouterClient{
-		APIKey:  apiKey,
-		BaseURL: baseURL,
+		APIKey:           apiKey,
+		ManagementAPIKey: mgmtKey,
+		BaseURL:          baseURL,
 	}
 
 	resp.DataSourceData = client
@@ -79,11 +91,20 @@ func (p *OpenRouterProvider) Configure(ctx context.Context, req provider.Configu
 }
 
 func (p *OpenRouterProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		NewAPIKeyResource,
+		NewGuardrailResource,
+	}
 }
 
 func (p *OpenRouterProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewCreditsDataSource,
+		NewModelsDataSource,
+		NewModelDataSource,
+		NewAPIKeysDataSource,
+		NewAPIKeyDataSource,
+	}
 }
 
 func (p *OpenRouterProvider) Functions(_ context.Context) []func() function.Function {
