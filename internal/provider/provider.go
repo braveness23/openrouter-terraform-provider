@@ -99,6 +99,7 @@ func (p *OpenRouterProvider) Resources(_ context.Context) []func() resource.Reso
 
 func (p *OpenRouterProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
+		NewActivityDataSource,
 		NewCreditsDataSource,
 		NewModelsDataSource,
 		NewModelDataSource,
